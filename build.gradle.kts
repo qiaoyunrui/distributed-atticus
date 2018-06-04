@@ -34,12 +34,12 @@ repositories {
 
 dependencies {
     //    compile("org.codehaus.groovy:groovy-all:2.3.11")
-    compile(fileTree("libs") {
-        include("*.jar")
-    })
     compile(kotlinModule("stdlib-jdk8", kotlin_version))
     testCompile("junit", "junit", "4.12")
     compile("com.google.code.gson:gson:2.8.4")
+    compile(fileTree("libs") {
+        include("*.jar")
+    })
 }
 
 //api fileTree(include: ['*.jar'], dir: 'libs')
