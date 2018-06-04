@@ -15,13 +15,14 @@ class ServerController {
             bootStrap.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel::class.java)
                     .childHandler(ServerInitializer())
-
             try {
+                // 阻塞
                 bootStrap.bind(config.port)
                         .sync()
                         .channel()
                         .closeFuture()
                         .sync()
+                println("还会到这里嘛？")
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {

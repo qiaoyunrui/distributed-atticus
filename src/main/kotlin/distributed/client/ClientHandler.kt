@@ -6,6 +6,9 @@ import io.netty.channel.SimpleChannelInboundHandler
 class ClientHandler : SimpleChannelInboundHandler<String>() {
     override fun channelRead0(ctx: ChannelHandlerContext?, msg: String?) {
         println("Server say : $msg")
+        if (msg == "nice") {
+            println("random ${Math.random()}")
+        }
     }
 
     override fun channelActive(ctx: ChannelHandlerContext?) {

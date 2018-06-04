@@ -7,7 +7,7 @@ import io.netty.channel.socket.nio.NioSocketChannel
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
-class ClientController {
+class GeneralClient {
 
     companion object {
         private val group: EventLoopGroup = NioEventLoopGroup()

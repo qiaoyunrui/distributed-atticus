@@ -1,7 +1,7 @@
 package distributed
 
-import distributed.client.ClientController
+import distributed.client.GeneralClient
 
 fun main(args: Array<String>) {
-    ClientController.start()
+    GeneralClient.start()
 }
