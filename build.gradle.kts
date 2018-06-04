@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.cli.jvm.main
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
@@ -13,7 +14,6 @@ buildscript {
 }
 
 plugins {
-    groovy
     java
     application
 }
@@ -33,10 +33,16 @@ repositories {
 }
 
 dependencies {
-    compile("org.codehaus.groovy:groovy-all:2.3.11")
+    //    compile("org.codehaus.groovy:groovy-all:2.3.11")
+    compile(fileTree("libs") {
+        include("*.jar")
+    })
     compile(kotlinModule("stdlib-jdk8", kotlin_version))
     testCompile("junit", "junit", "4.12")
+    compile("com.google.code.gson:gson:2.8.4")
 }
+
+//api fileTree(include: ['*.jar'], dir: 'libs')
 
 configure<JavaPluginConvention> {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -49,8 +55,12 @@ application {
 }
 tasks {
     "print" {
-        java.sourceSets.asMap.forEach({ key, value ->
-            println("$key | $value")
-        })
+        group = "Juhezi"
+        description = "Print the SourcesSet"
+        doLast {
+            java.sourceSets.asMap.forEach({ key, value ->
+                println("$key | $value")
+            })
+        }
     }
 }

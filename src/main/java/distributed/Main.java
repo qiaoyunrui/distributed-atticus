@@ -1,14 +1,13 @@
 package distributed;
 
+import com.google.gson.Gson;
+
 public class Main {
 
     public static void main(String[] args) {
         System.out.println("HelloWorld");
         LibKt.sayHello();
-        Node node = new Node();
-        node.x = 20;
-        node.y = 30;
-        System.out.println(node);
+        System.out.println(new Gson());
     }
 
 }
