@@ -1,25 +1,13 @@
 package distributed.client
 
-import distributed.KEY_CONTROL
-import distributed.KEY_START
+import distributed.bean.createControlUnit
+import distributed.bean.createStartUnit
 import distributed.distanceTime
+import distributed.dprintln
 import io.netty.bootstrap.Bootstrap
 import io.netty.channel.EventLoopGroup
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.nio.NioSocketChannel
-
-/**
- * 控制客户端
- */
-
-fun main(args: Array<String>) {
-    val thread = ConnectThread()
-    thread.start()
-    Thread.sleep(1000)
-    thread.send(KEY_START)
-    Thread.sleep(1000)
-//    thread.exit()
-}
 
 /**
  * 与服务端的连接线程
@@ -27,7 +15,8 @@ fun main(args: Array<String>) {
 class ConnectThread : Thread() {
 
     val group: EventLoopGroup = NioEventLoopGroup()
-    val config = ClientConfig()
+    val config = ControlClientConfig()
+    val controlClientHandler = ControlClientHandler()
 
     private var content: String = ""    // 向服务端发送的内容
     private var running: Boolean = true // 是否正在运行
@@ -46,18 +35,18 @@ class ConnectThread : Thread() {
 
             bootStrap.group(group)
                     .channel(NioSocketChannel::class.java)
-                    .handler(ClientInitializer())
+                    .handler(ClientInitializer(controlClientHandler))
 
             val channel = bootStrap
                     .connect(config.host, config.port)
                     .sync()
                     .channel()
             // 向服务端发送身份标识
-            channel.writeAndFlush("$KEY_CONTROL\n")
+            channel.writeAndFlush("${createControlUnit()}\n")
             while (running) {
                 val startTime = System.currentTimeMillis()
                 if (!content.isEmpty()) {    //content 是空，则不进行通信
-                    channel.writeAndFlush("$content\n")     //向服务端发送信息
+                    channel.writeAndFlush("${createStartUnit(content)}\n")     //向服务端发送信息
                     content = ""    // 消息设置为空
                 }
                 val time = System.currentTimeMillis() - startTime
@@ -65,7 +54,7 @@ class ConnectThread : Thread() {
                     Thread.sleep(distanceTime - time)
                 }
             }
-            println("停止运行")
+            dprintln("停止运行")
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
