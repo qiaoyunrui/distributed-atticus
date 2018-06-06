@@ -24,7 +24,7 @@ class GeneralClient {
                 /**
                  * 连接服务器
                  */
-                val channel = bootStrap
+                bootStrap
                         .connect(config.host, config.port)
                         .sync()
                         .channel()

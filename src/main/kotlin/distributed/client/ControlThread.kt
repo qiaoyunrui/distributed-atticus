@@ -12,7 +12,7 @@ import io.netty.channel.socket.nio.NioSocketChannel
 /**
  * 与服务端的连接线程
  */
-class ConnectThread : Thread() {
+class ControlThread : Thread() {
 
     val group: EventLoopGroup = NioEventLoopGroup()
     val config = ControlClientConfig()
@@ -31,8 +31,8 @@ class ConnectThread : Thread() {
 
     override fun run() {
         try {
+            controlClientHandler.callback = config.callback
             val bootStrap = Bootstrap()
-
             bootStrap.group(group)
                     .channel(NioSocketChannel::class.java)
                     .handler(ClientInitializer(controlClientHandler))

@@ -1,7 +1,10 @@
 package distributed.server
 
+import clojure.lang.PersistentVector
 import distributed.*
 import distributed.bean.Element
+import distributed.bean.createCalculateUnit
+import distributed.bean.createErrorUnit
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import java.net.InetAddress
@@ -12,7 +15,7 @@ class ServerHandler : SimpleChannelInboundHandler<String>() {
      * 客户端想服务端发送消息时调用
      */
     override fun channelRead0(ctx: ChannelHandlerContext?, msg: String?) {
-        dprintln("客户端发送的线程为： $msg")
+        dprintln("客户端发送的数据为： $msg")
         if (ctx == null) return
         val element: Element = gson.fromJson<Element>(msg, Element::class.java)
         when (element.operation) {
@@ -23,7 +26,28 @@ class ServerHandler : SimpleChannelInboundHandler<String>() {
             }
             KEY_START -> {
                 // Clojure 把数据发送给服务器，然后服务器把数据发送给控制线程
-                // todo 这里要对任务进行分配
+                if (channelList.isEmpty()) {
+                    controlChannel?.writeAndFlush("${createErrorUnit("没有计算线程")}\n")
+                } else {
+                    // 对数据进行编码
+                    val list: Array<Array<Long>> = gson.fromJson<Array<Array<Long>>>(element.data, Array<Array<Long>>::class.java)
+                    // 对计算任务进行分配
+                    val channelSize = channelList.size
+                    dprintln("计算线程个数为：$channelSize")
+                    val subList: Array<MutableList<Array<Long>>> = Array(channelSize, {
+                        ArrayList<Array<Long>>()
+                    })
+//                    println("$list")
+                    /**
+                     * 将一个列表分为多个列表
+                     */
+                    list.forEachIndexed { index, vector ->
+                        subList[index % channelSize].add(vector)
+                    }
+                    channelList.forEachIndexed { index, channel ->
+                        channel.writeAndFlush("${createCalculateUnit(gson.toJson(subList[index]))}\n")
+                    }
+                }
             }
             KEY_RESULT -> {
                 // 当有一个计算线程 计算线程完成计算工作后，把计算结果发送给服务器

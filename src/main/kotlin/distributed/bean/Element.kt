@@ -11,3 +11,5 @@ fun createResultUnit(data: String) = gson.toJson(Element(KEY_RESULT, data))
 fun createStartUnit(data: String) = gson.toJson(Element(KEY_START, data))
 
 fun createCalculateUnit(data: String) = gson.toJson(Element(KEY_CALCULATE, data))
+
+fun createErrorUnit(data: String) = gson.toJson(Element(KEY_ERROR, data))

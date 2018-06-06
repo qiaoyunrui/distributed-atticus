@@ -1,6 +1,5 @@
 package distributed.client
 
-import distributed.KEY_CALCULATE
 import distributed.bean.Element
 import distributed.dprintln
 import distributed.gson
@@ -9,14 +8,12 @@ import io.netty.channel.SimpleChannelInboundHandler
 
 class ControlClientHandler : SimpleChannelInboundHandler<String>() {
 
-    internal var callback: ((String) -> Unit)? = null
+    internal var callback: ((Element) -> Unit)? = null
 
     override fun channelRead0(ctx: ChannelHandlerContext?, msg: String?) {
         dprintln("服务器发给控制客户端的信息为 $msg")
         val element = gson.fromJson<Element>(msg, Element::class.java)
-        if (element.operation == KEY_CALCULATE) {
-            callback?.invoke(element.data)
-        }
+        callback?.invoke(element)
     }
 
     override fun channelActive(ctx: ChannelHandlerContext?) {

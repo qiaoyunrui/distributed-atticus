@@ -37,6 +37,7 @@ dependencies {
     compile(kotlinModule("stdlib-jdk8", kotlin_version))
     testCompile("junit", "junit", "4.12")
     compile("com.google.code.gson:gson:2.8.4")
+    compile("redis.clients:jedis:2.6.2")
     compile(fileTree("libs") {
         include("*.jar")
     })
