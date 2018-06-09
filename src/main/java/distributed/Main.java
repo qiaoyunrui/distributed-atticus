@@ -3,7 +3,6 @@ package distributed;
 
 import clojure.java.api.Clojure;
 import clojure.lang.*;
-import com.google.gson.Gson;
 import distributed.client.ControlThread;
 
 import java.util.ArrayList;
@@ -20,39 +19,49 @@ public class Main {
     private static volatile String json = "";
 
     private static int currentGeneration = 0;   // 当前代数
+    // 进化前的数据，刚刚计算完适应度
     private static List<List> data = new ArrayList<>();
+    // 进化后的数据，即下一代数据
+    private static List<List> nextGeneration = new ArrayList<>();
+    private static ControlThread controlThread = new ControlThread();
+
 
     public static void main(String[] args) {
         // todo 从文件中读取配置参数
         Config config = new Config();
-        ControlThread controlThread = new ControlThread();
         controlThread.getConfig().setCallback(element -> {
             if (GlobalKt.getKEY_ERROR().equals(element.getOperation())) {
                 // 进行本地计算，不进行分布式计算
                 GlobalKt.dprintln("进行本地计算，不进行分布式计算");
                 String result = ClientLauncherKt.calculate(json, config.getChromosome_size());
-//                System.out.println(result);
                 // todo 这里应该是对数据进行存储【新的线程】
-                // 然后进行后面的进化操作
-                List<List> subData = GlobalKt.getGson().fromJson(result, List.class);
-                data.clear();
-                data.addAll(subData);
-                GlobalKt.dprintln("开始进化");
-                String temp = singleEvolve(data, config.getSize(), config.getChromosome_size(),
-                        config.getCrossover_probability(),
-                        config.getMutation_probability());
-                data.clear();
+                // 是否进行接下来的进化操作
+                if (hasNext(config)) {
+                    // 进化并计算种群适应度
+                    List<List> subData = GlobalKt.getGson().fromJson(result, List.class);
+                    data.addAll(subData);
+                    System.out.println("本地计算适应度的结果是：\n" + data);
+                    GlobalKt.dprintln("开始进化");
+                    next(config);
+                } else {
+                    GlobalKt.dprintln("计算结束。");
+                    controlThread.exit();
+                }
+
             } else if (GlobalKt.getKEY_RESULT().equals(element.getOperation())) {
                 GlobalKt.dprintln("一个计算进程计算适应度完成，开始存储数据");
-                // todo 检测是否所有的个体适应度都计算完全,如果是的话，就开始进行进化操作
                 List<List> subData = GlobalKt.getGson().fromJson(element.getData(), List.class);
                 data.addAll(subData);   // 添加数据
                 if (data.size() >= config.getSize()) {  // 所有个体适应度计算完毕
-                    GlobalKt.dprintln("所有个体适应度计算完毕，开始进化");
-                    String result = singleEvolve(data, config.getSize(), config.getChromosome_size(),
-                            config.getCrossover_probability(),
-                            config.getMutation_probability());
-                    data.clear();
+                    GlobalKt.dprintln("所有个体适应度计算完毕");
+                    // 是否需要执行进化操作
+                    if (hasNext(config)) {
+                        // 执行进化操作
+                        next(config);
+                    } else {
+                        GlobalKt.dprintln("计算完成。");
+                        controlThread.exit();
+                    }
                 }
             }
             return null;
@@ -68,7 +77,6 @@ public class Main {
         List<PersistentVector> list = result.subList(0, result.size());
         json = GlobalKt.getGson().toJson(list);
         GlobalKt.dprintln("把数据发送到服务器，进行分布式运算");
-        System.out.println("json " + json);
         controlThread.send(json);
     }
 
@@ -80,11 +88,38 @@ public class Main {
      * @param data
      * @return
      */
-    private static String singleEvolve(List<List> data, int size, int chromosome_size,
-                                       double crossover_probability, double mutation_probability) {
-        Object object = ClojureKt.getEvolve().invoke(data, size, chromosome_size, crossover_probability, mutation_probability);
-        System.out.println(object);
-        return "";
+    private static List<List> singleEvolve(List<List> data, int size, int chromosome_size,
+                                           double crossover_probability, double mutation_probability) {
+        List<List> result = (List<List>) ClojureKt.getEvolve().invoke(data, size, chromosome_size,
+                crossover_probability, mutation_probability);
+        GlobalKt.dprintln("进化后的数据为：\n" + result);
+        return result;
+    }
+
+    /**
+     * 是否进行下一代
+     * 当前代数是否大于最大代数
+     *
+     * @return
+     */
+    private static boolean hasNext(Config config) {
+        return currentGeneration <= config.getSize();
+    }
+
+    /**
+     * 进行下一代计算
+     */
+    private static void next(Config config) {
+        currentGeneration++;
+        nextGeneration.clear();
+        nextGeneration.addAll(singleEvolve(data, config.getSize(), config.getChromosome_size(),
+                config.getCrossover_probability(),
+                config.getMutation_probability()));
+        data.clear();
+        data.addAll(nextGeneration);
+        String json = GlobalKt.getGson().toJson(data);
+        GlobalKt.dprintln("把数据发送到服务器，进行分布式运算");
+        controlThread.send(json);
     }
 
 }
