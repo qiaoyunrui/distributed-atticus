@@ -38,3 +38,7 @@ fun calculate(data: String, chromosome_size: Int): String {
     }
     return gson.toJson(newList)
 }
+
+fun decode(chromosome: Int, chromosome_size: Int): Double {
+    return decoder.invoke(chromosome, chromosome_size) as Double
+}

@@ -16,6 +16,10 @@ public class Main {
         ClojureKt.getRequireFn().invoke(Symbol.intern("me.juhezi.core"));
     }
 
+    private static double fitness = 0;
+    private static double x = 0;
+    private static double y = 0;
+
     private static volatile String json = "";
 
     private static int currentGeneration = 0;   // 当前代数
@@ -24,11 +28,10 @@ public class Main {
     // 进化后的数据，即下一代数据
     private static List<List> nextGeneration = new ArrayList<>();
     private static ControlThread controlThread = new ControlThread();
-
+    private static Config config = new Config();
 
     public static void main(String[] args) {
         // todo 从文件中读取配置参数
-        Config config = new Config();
         controlThread.getConfig().setCallback(element -> {
             if (GlobalKt.getKEY_ERROR().equals(element.getOperation())) {
                 // 进行本地计算，不进行分布式计算
@@ -40,20 +43,24 @@ public class Main {
                     // 进化并计算种群适应度
                     List<List> subData = GlobalKt.getGson().fromJson(result, List.class);
                     data.addAll(subData);
-                    System.out.println("本地计算适应度的结果是：\n" + data);
+                    updateBestFitness();
                     GlobalKt.dprintln("开始进化");
                     next(config);
                 } else {
                     GlobalKt.dprintln("计算结束。");
                     controlThread.exit();
+                    printBestFitness();
                 }
 
             } else if (GlobalKt.getKEY_RESULT().equals(element.getOperation())) {
                 GlobalKt.dprintln("一个计算进程计算适应度完成，开始存储数据");
+                // TODO: 2018/6/11 存储数据
                 List<List> subData = GlobalKt.getGson().fromJson(element.getData(), List.class);
                 data.addAll(subData);   // 添加数据
                 if (data.size() >= config.getSize()) {  // 所有个体适应度计算完毕
                     GlobalKt.dprintln("所有个体适应度计算完毕");
+                    // 获取最佳适应度个体
+                    updateBestFitness();
                     // 是否需要执行进化操作
                     if (hasNext(config)) {
                         // 执行进化操作
@@ -61,6 +68,7 @@ public class Main {
                     } else {
                         GlobalKt.dprintln("计算完成。");
                         controlThread.exit();
+                        printBestFitness();
                     }
                 }
             }
@@ -107,7 +115,7 @@ public class Main {
     }
 
     /**
-     * 进行下一代计算
+     * 进行下一代计算适应度
      */
     private static void next(Config config) {
         currentGeneration++;
@@ -122,6 +130,33 @@ public class Main {
         controlThread.send(json);
     }
 
-}
+    /**
+     * 更新最佳适应度
+     */
+    private static void updateBestFitness() {
+        for (List datum : data) {
+            if (datum != null && datum.size() > 2) {
+                double tempFitness = (double) datum.get(2);
+                if (tempFitness > fitness) {
+                    fitness = tempFitness;
+                    x = (double) datum.get(0);
+                    y = (double) datum.get(1);
+                }
+            }
+        }
+    }
 
-// (me.juhezi.creator/create 25 10)
+    /**
+     * 打印最佳适应度
+     */
+    private static void printBestFitness() {
+        System.out.println();
+        System.out.println("------最佳个体------");
+        System.out.println("二进制编码为：\t(" + (int) x + "," + (int) y + ")");
+        double realX = ClientLauncherKt.decode((int) x, config.getChromosome_size());
+        double realY = ClientLauncherKt.decode((int) y, config.getChromosome_size());
+        System.out.println("坐标为：\t(" + realX + "," + realY + ")");
+        System.out.println("适应度：\t" + fitness);
+    }
+
+}

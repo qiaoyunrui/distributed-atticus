@@ -20,6 +20,8 @@ val KEY_ERROR = "Error" //发生错误
 
 val gson = Gson()
 
+//val jedis = Jedis()
+
 var DEBUG = true   //是否打印日志
 
 fun dprintln(message: String) {
@@ -28,3 +30,4 @@ fun dprintln(message: String) {
     }
 }
 
+val ATTICUS = "atticus"
